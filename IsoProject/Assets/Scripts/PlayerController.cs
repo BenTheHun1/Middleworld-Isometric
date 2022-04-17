@@ -53,7 +53,7 @@ public class PlayerController : MonoBehaviour
             }
         }
         animator.SetFloat("velocity", agent.velocity.magnitude);
-        Debug.Log(agent.remainingDistance);
+        //Debug.Log(agent.remainingDistance);
         if (ReachedDestinationOrGaveUp())
         {
             pointer.position = away.position;
