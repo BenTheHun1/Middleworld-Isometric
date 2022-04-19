@@ -14,6 +14,11 @@ public class PlayerController : MonoBehaviour
     public Transform pointer;
     Animator animator;
     public Transform away;
+    Transform standpoint;
+    string queueblock;
+
+    public Texture2D curNorm;
+    public Texture2D curSel;
 
     // Start is called before the first frame update
     void Start()
@@ -21,32 +26,42 @@ public class PlayerController : MonoBehaviour
         agent = gameObject.gameObject.GetComponent<NavMeshAgent>();
         animator = gameObject.GetComponent<Animator>();
         pointer.position = away.position;
+        Cursor.SetCursor(curNorm, new Vector2(7, 7), CursorMode.Auto);
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Mouse0))
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out hit, ground))
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out hit, ground))
-            {
-                targetPosition = hit.point;
-            }
-            //gameObject.transform.position = targetPosition;
-
+            targetPosition = hit.point;
             if (hit.collider.gameObject.CompareTag("Object"))
             {
-                flow.ExecuteBlock(hit.collider.gameObject.name);
-                Transform tmp = hit.collider.gameObject.transform.Find("StandPoint");
-                if (tmp != null)
+                Cursor.SetCursor(curSel, new Vector2(7, 7), CursorMode.Auto);
+            }
+            else
+            {
+                Cursor.SetCursor(curNorm, new Vector2(7, 7), CursorMode.Auto);
+            }
+        }
+
+        if (Input.GetKey(KeyCode.Mouse0)) //GetKey to Drag, GetKeyDown to Move to point. Have to weight pros and cons
+        {
+            if (hit.collider.gameObject.CompareTag("Object"))
+            {
+                
+                standpoint = hit.collider.gameObject.transform.Find("StandPoint");
+                if (standpoint != null && !flow.HasExecutingBlocks())
                 {
-                    agent.destination = tmp.transform.position;
-                    pointer.position = tmp.transform.position;
+                    queueblock = hit.collider.gameObject.name;
+                    agent.destination = standpoint.transform.position;
+                    pointer.position = standpoint.transform.position;
                 }
             }
             else if (!flow.HasExecutingBlocks())
             {
+                queueblock = null;
                 agent.destination = targetPosition;
                 pointer.position = targetPosition;
                 
@@ -57,10 +72,26 @@ public class PlayerController : MonoBehaviour
         if (ReachedDestinationOrGaveUp())
         {
             pointer.position = away.position;
+            if (queueblock != null)
+            {
+                flow.ExecuteBlock(queueblock);
+                queueblock = null;
+                StartCoroutine("Rotate");
+            }
         }
         else
         {
             //pointer.position = agent.destination;
+        }
+    }
+
+    IEnumerator Rotate()
+    {
+        for (float i = 0;  gameObject.transform.rotation != standpoint.rotation; i += Time.deltaTime)
+        {
+            gameObject.transform.eulerAngles = new Vector3(gameObject.transform.eulerAngles.x, Mathf.Lerp(gameObject.transform.eulerAngles.y, standpoint.eulerAngles.y, i), gameObject.transform.eulerAngles.z);
+
+            yield return null;
         }
     }
 
