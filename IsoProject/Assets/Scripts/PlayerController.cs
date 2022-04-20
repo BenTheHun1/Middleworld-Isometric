@@ -14,8 +14,10 @@ public class PlayerController : MonoBehaviour
     public Transform pointer;
     Animator animator;
     public Transform away;
+
     Transform standpoint;
     string queueblock;
+    NavMeshAgent curNPC;
 
     public Texture2D curNorm;
     public Texture2D curSel;
@@ -50,13 +52,22 @@ public class PlayerController : MonoBehaviour
         {
             if (hit.collider.gameObject.CompareTag("Object"))
             {
-                
-                standpoint = hit.collider.gameObject.transform.Find("StandPoint");
-                if (standpoint != null && !flow.HasExecutingBlocks())
+
+                if (hit.collider.gameObject.GetComponent(typeof(NavMeshAgent)))
                 {
-                    queueblock = hit.collider.gameObject.name;
+                    curNPC = hit.collider.gameObject.GetComponent<NavMeshAgent>();
+                    curNPC.isStopped = true;
+                    //curNPC.gameObject.transform.LookAt(gameObject.transform.position);
+                }
+                standpoint = hit.collider.gameObject.transform.Find("StandPoint");
+                if (standpoint != null)
+                {
                     agent.destination = standpoint.transform.position;
                     pointer.position = standpoint.transform.position;
+                }
+                if (!flow.HasExecutingBlocks())
+                {
+                    queueblock = hit.collider.gameObject.name;
                 }
             }
             else if (!flow.HasExecutingBlocks())
@@ -64,7 +75,12 @@ public class PlayerController : MonoBehaviour
                 queueblock = null;
                 agent.destination = targetPosition;
                 pointer.position = targetPosition;
-                
+                standpoint = null;
+                if (curNPC != null)
+                {
+                    curNPC.isStopped = false;
+                    curNPC = null;
+                }
             }
         }
         animator.SetFloat("velocity", agent.velocity.magnitude);
@@ -76,6 +92,9 @@ public class PlayerController : MonoBehaviour
             {
                 flow.ExecuteBlock(queueblock);
                 queueblock = null;
+            }
+            if (standpoint != null)
+            {
                 StartCoroutine("Rotate");
             }
         }
@@ -89,7 +108,7 @@ public class PlayerController : MonoBehaviour
     {
         for (float i = 0;  gameObject.transform.rotation != standpoint.rotation; i += Time.deltaTime)
         {
-            gameObject.transform.eulerAngles = new Vector3(gameObject.transform.eulerAngles.x, Mathf.Lerp(gameObject.transform.eulerAngles.y, standpoint.eulerAngles.y, i), gameObject.transform.eulerAngles.z);
+            gameObject.transform.eulerAngles = new Vector3(gameObject.transform.eulerAngles.x, Mathf.Lerp(gameObject.transform.eulerAngles.y, standpoint.eulerAngles.y, i / 10), gameObject.transform.eulerAngles.z);
 
             yield return null;
         }
